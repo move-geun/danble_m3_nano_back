@@ -7,6 +7,7 @@ import os
 import json
 import tempfile
 import shutil
+import re
 from typing import Optional, List, Dict, Union, Any
 from datetime import datetime
 from pathlib import Path
@@ -89,6 +90,27 @@ class GenerateRequest(BaseModel):
 
 
 # 유틸리티 함수들 (main.py에서 가져옴)
+def _normalize_products(products: Union[List, Dict]) -> List[Dict]:
+    """
+    products를 정규화합니다. 
+    - 배열이면 그대로 반환
+    - 객체면 배열로 변환 (중복 키 처리 포함)
+    """
+    if isinstance(products, list):
+        return products
+    elif isinstance(products, dict):
+        # 객체를 배열로 변환 (각 항목에 type 필드 추가)
+        product_list = []
+        for key, value in products.items():
+            if isinstance(value, dict):
+                item = value.copy()
+                item["type"] = key
+                product_list.append(item)
+        return product_list
+    else:
+        return []
+
+
 def _translate_sub_type_to_english(sub_type: str) -> str:
     translation_map = {
         "벨트": "belt", "belt": "belt",
@@ -264,7 +286,10 @@ async def generate_image(request: GenerateRequest):
         shoe_products = []
         etc_products = []
         
-        for product in request.products:
+        # products 정규화 (객체면 배열로 변환)
+        normalized_products = _normalize_products(request.products)
+        
+        for product in normalized_products:
             # 딕셔너리 형태로 처리
             if not isinstance(product, dict):
                 continue
@@ -291,7 +316,7 @@ async def generate_image(request: GenerateRequest):
             
             item_type = item_type_map.get(product_type, "etc")
             
-            if item_type == "top":
+            if item_type == "top" or item_type == "outer":
                 top_products.append((item_type, sub_type, product_type))
             elif item_type == "pants":
                 bottom_products.append((item_type, sub_type, product_type))
