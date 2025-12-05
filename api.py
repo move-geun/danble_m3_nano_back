@@ -99,6 +99,8 @@ def _translate_sub_type_to_english(sub_type: str) -> str:
         "가방": "bag", "bag": "bag", "백": "bag",
         "양말": "socks", "socks": "socks",
     }
+    if not sub_type:
+        return sub_type or ""
     sub_lower = sub_type.lower()
     if sub_lower in translation_map:
         return translation_map[sub_lower]
@@ -276,7 +278,7 @@ async def generate_image(request: GenerateRequest):
                 continue
             
             product_type = product.get("type", "").lower()
-            sub_type = product.get("sub_type", "")
+            sub_type = product.get("sub_type", "") or ""
             
             item_type_map = {
                 "top": "top",
